@@ -268,11 +268,30 @@ io.on('connection', socket => {
 
   socket.on('restartGame', () => {
     const room = rooms.get(socket.data.roomId);
-    if (!room || room.host !== socket.id || room.status !== 'ended') return;
+    if (!room || room.status !== 'ended') return;
+    // 방장만 실제 재시작, 아니면 무시
+    if (room.host !== socket.id) {
+      socket.emit('err', '방장만 게임을 다시 시작할 수 있습니다.');
+      return;
+    }
     clearInterval(room.ticker);
     room.status = 'waiting';
     io.to(room.id).emit('backToLobby', { state: serializeRoom(room) });
     broadcastRoomList();
+  });
+
+  socket.on('chat', ({ message }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room) return;
+    const player = room.players.get(socket.id);
+    if (!player) return;
+    const trimmed = message?.trim().substring(0, 120);
+    if (!trimmed) return;
+    io.to(room.id).emit('chatMsg', {
+      nickname: player.nickname,
+      color: player.color,
+      message: trimmed,
+    });
   });
 
   socket.on('disconnect', () => {
