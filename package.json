@@ -1,0 +1,13 @@
+{
+  "name": "juklim-gosu",
+  "version": "1.0.0",
+  "description": "죽림고수 - 멀티플레이어 끝말잇기",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  }
+}

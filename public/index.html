@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>죽림고수</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a180a;
+      --bamboo: #6ea84a;
+      --bamboo-light: #9dcc6f;
+      --gold: #f0c040;
+      --gold-dark: #b08820;
+      --text: #e8f5e0;
+      --dim: #7aaa7a;
+      --card: rgba(255,255,255,0.06);
+      --border: rgba(110,168,74,0.3);
+      --red: #e04444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Nanum Gothic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Bamboo BG ── */
+    #bambooBg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; position: relative; z-index: 1; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ── HOME ── */
+    #screen-home {
+      flex-direction: column; align-items: center; justify-content: center; padding: 24px;
+    }
+    .logo { text-align: center; margin-bottom: 36px; }
+    .logo-title {
+      font-size: 58px; font-weight: 800; color: var(--gold);
+      text-shadow: 0 0 40px rgba(240,192,64,.6), 0 2px 0 var(--gold-dark);
+      letter-spacing: 6px;
+    }
+    .logo-sub { font-size: 14px; color: var(--dim); margin-top: 6px; letter-spacing: 3px; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; width: 100%; max-width: 400px;
+      backdrop-filter: blur(12px);
+    }
+    .label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; letter-spacing: 1px; }
+    .field {
+      width: 100%; padding: 12px 16px;
+      background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 16px;
+      font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    .field:focus { border-color: var(--bamboo); }
+    .field::placeholder { color: var(--dim); }
+    .mg { margin-bottom: 14px; }
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 8px;
+      font-size: 16px; font-family: inherit; font-weight: 700;
+      cursor: pointer; transition: transform .1s, opacity .2s; letter-spacing: 1px;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-gold { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: #1a1200; }
+    .btn-green { background: linear-gradient(135deg, #3a6a1a, var(--bamboo)); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--dim); }
+    .divider {
+      text-align: center; color: var(--dim); font-size: 13px; margin: 18px 0;
+      position: relative;
+    }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%; height: 1px;
+      width: calc(50% - 24px); background: var(--border);
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+
+    /* ── LOBBY ── */
+    #screen-lobby {
+      flex-direction: column; align-items: center; padding: 40px 20px;
+    }
+    .lobby-top { text-align: center; margin-bottom: 28px; }
+    .room-pill {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 40px; padding: 10px 20px; margin-top: 10px;
+    }
+    .room-code { font-size: 28px; font-weight: 800; color: var(--gold); letter-spacing: 5px; }
+    .copy-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--dim); font-size: 18px; transition: color .2s;
+    }
+    .copy-btn:hover { color: var(--gold); }
+    .players-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px; width: 100%; max-width: 560px; margin-bottom: 28px;
+    }
+    .pcard {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .pavatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; margin: 0 auto 8px;
+    }
+    .pname { font-size: 13px; font-weight: 700; }
+    .pbadge { font-size: 11px; color: var(--gold); margin-top: 3px; }
+    .hint { color: var(--dim); font-size: 13px; text-align: center; margin-bottom: 20px; }
+    .lobby-btns { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── GAME WRAPPER ── */
+    #screen-game {
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 12px; gap: 10px;
+    }
+    .game-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 800px;
+    }
+    .game-title { font-size: 20px; font-weight: 800; color: var(--gold); }
+    .game-info { font-size: 13px; color: var(--dim); }
+    .game-info span { color: var(--gold); font-weight: 700; }
+
+    #canvasWrap {
+      position: relative; width: 100%; max-width: 800px;
+      border: 2px solid var(--border); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 0 40px rgba(110,168,74,.15);
+    }
+    canvas { display: block; width: 100%; height: auto; }
+
+    /* Mobile controls */
+    #mobileHint {
+      display: none; font-size: 12px; color: var(--dim); text-align: center;
+    }
+    @media (hover: none) and (pointer: coarse) {
+      #mobileHint { display: block; }
+    }
+
+    /* Players sidebar */
+    #playersSidebar {
+      width: 100%; max-width: 800px;
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    }
+    .player-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 12px;
+      font-size: 13px; transition: opacity .3s;
+    }
+    .player-chip.dead { opacity: .35; }
+    .chip-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .chip-hearts { font-size: 11px; }
+
+    /* Toast */
+    #toasts {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 999; display: flex; flex-direction: column; gap: 6px;
+      pointer-events: none; width: max-content; max-width: 320px;
+    }
+    .toast {
+      background: rgba(10,24,10,.95); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 18px; font-size: 13px;
+      animation: tin .3s ease; text-align: center;
+    }
+    .toast.err { border-color: var(--red); color: #ff9090; }
+    .toast.ok  { border-color: var(--bamboo); color: var(--bamboo-light); }
+    @keyframes tin {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── GAME OVER ── */
+    #screen-gameover {
+      flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px;
+    }
+    .winner-box {
+      background: var(--card); border: 2px solid var(--gold);
+      border-radius: 20px; padding: 48px 36px;
+      text-align: center; max-width: 400px; width: 100%;
+      box-shadow: 0 0 60px rgba(240,192,64,.25);
+    }
+    .trophy { font-size: 64px; margin-bottom: 12px; color: var(--gold); text-shadow: 0 0 30px rgba(240,192,64,.5); }
+    .winner-label { font-size: 14px; color: var(--dim); letter-spacing: 2px; margin-bottom: 6px; }
+    .winner-name { font-size: 40px; font-weight: 800; color: var(--gold); margin-bottom: 6px; }
+    .winner-score { font-size: 15px; color: var(--dim); margin-bottom: 32px; }
+    .scoreboard { width: 100%; max-width: 400px; margin: 20px 0; }
+    .srow {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 6px;
+    }
+    .srank { font-size: 18px; min-width: 28px; font-weight: 800; }
+    .sname { flex: 1; font-weight: 700; }
+    .sscore { color: var(--gold); }
+    .go-btns { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Room List ── */
+    #screen-rooms {
+      flex-direction: column; align-items: center; padding: 40px 20px;
+    }
+    .room-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 10px;
+      transition: border-color .2s;
+    }
+    .room-item:hover { border-color: var(--bamboo); }
+    .room-item-info { display: flex; flex-direction: column; gap: 4px; }
+    .room-host { font-size: 15px; font-weight: 700; }
+    .room-meta { font-size: 12px; color: var(--dim); }
+    .room-count {
+      font-size: 13px; font-weight: 700;
+      background: rgba(110,168,74,.15); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 12px; color: var(--bamboo-light);
+      margin-right: 10px;
+    }
+    .room-join-btn {
+      padding: 8px 18px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #3a6a1a, var(--bamboo));
+      color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: transform .1s;
+    }
+    .room-join-btn:active { transform: scale(.96); }
+    .room-empty {
+      text-align: center; color: var(--dim); font-size: 14px;
+      padding: 48px 20px;
+      background: var(--card); border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="bambooBg"></div>
+<div id="toasts"></div>
+
+<!-- ══ HOME ══ -->
+<div class="screen active" id="screen-home">
+  <div class="logo">
+    <div class="logo-title">죽림고수</div>
+    <div class="logo-sub">竹林高手 · 표창 피하기</div>
+  </div>
+  <div class="card">
+    <div class="mg">
+      <label class="label" for="nicknameInput">닉네임</label>
+      <input class="field" id="nicknameInput" placeholder="닉네임 입력" maxlength="10">
+    </div>
+    <button class="btn btn-gold" onclick="goToRoomList()">방 목록 보기</button>
+  </div>
+</div>
+
+<!-- ══ ROOM LIST ══ -->
+<div class="screen" id="screen-rooms">
+  <div class="logo" style="margin-bottom:24px;">
+    <div class="logo-title" style="font-size:36px;">죽림고수</div>
+  </div>
+  <div style="width:100%;max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:800;color:var(--gold);">열린 방 목록</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="width:auto;padding:8px 14px;font-size:13px;" onclick="socket.emit('getRooms')"><i class="fa-solid fa-rotate-right"></i> 새로고침</button>
+        <button class="btn btn-gold" style="width:auto;padding:8px 16px;font-size:13px;" onclick="createRoom()"><i class="fa-solid fa-plus"></i> 새 방 만들기</button>
+      </div>
+    </div>
+    <div id="roomListContainer">
+      <div class="room-empty">방을 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOBBY ══ -->
+<div class="screen" id="screen-lobby">
+  <div class="lobby-top">
+    <div style="font-size:28px;font-weight:800;color:var(--gold);">죽림고수</div>
+    <div style="color:var(--dim);margin-top:6px;">친구에게 방 코드를 공유하세요</div>
+    <div class="room-pill">
+      <span class="room-code" id="lobbyCode">-----</span>
+      <button class="copy-btn" onclick="copyCode()"><i class="fa-regular fa-copy"></i></button>
+    </div>
+  </div>
+  <div class="players-grid" id="lobbyPlayers"></div>
+  <p class="hint" id="lobbyHint"></p>
+  <div class="lobby-btns">
+    <button class="btn btn-gold" id="startBtn" style="display:none;" onclick="startGame()"><i class="fa-solid fa-play"></i> 게임 시작!</button>
+    <button class="btn btn-outline" onclick="leaveRoom()"><i class="fa-solid fa-right-from-bracket"></i> 방 나가기</button>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="screen" id="screen-game">
+  <div class="game-bar">
+    <div class="game-title">죽림고수</div>
+    <div class="game-info">방: <span id="gCode"></span> &nbsp;|&nbsp; 생존: <span id="gTime">0</span>초</div>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+  </div>
+  <p id="mobileHint">화면을 터치해서 이동하세요</p>
+  <div id="playersSidebar"></div>
+</div>
+
+<!-- ══ GAME OVER ══ -->
+<div class="screen" id="screen-gameover">
+  <div class="winner-box">
+    <div class="trophy"><i class="fa-solid fa-trophy"></i></div>
+    <div class="winner-label">죽림고수 등극!</div>
+    <div class="winner-name" id="goWinner">-</div>
+    <div class="winner-score" id="goScore"></div>
+  </div>
+  <div class="scoreboard" id="goScoreboard"></div>
+  <div class="go-btns">
+    <button class="btn btn-gold" id="restartBtn" style="display:none;" onclick="restartGame()">다시 하기</button>
+    <button class="btn btn-outline" onclick="location.reload()">처음으로</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ════════════════════════════════
+// Constants (must match server.js)
+// ════════════════════════════════
+const ARENA_W = 800, ARENA_H = 500;
+const PLAYER_R = 18, SHURIKEN_R = 10;
+const PLAYER_SPEED = 260; // px/s
+const POS_SEND_MS = 48;
+
+// ════════════════════════════════
+// State
+// ════════════════════════════════
+const socket = io();
+let myId = null;
+let roomId = null;
+let roomState = null;
+
+// game-time state
+let otherPlayers = new Map(); // id → {id,nickname,color,x,y,alive,lives}
+let myPlayer = null;
+let shurikens = new Map(); // id → {startX,startY,vx,vy,spawnTime}
+let flashMap = new Map(); // playerId → timestamp of last hit
+let hitAnims = []; // [{x,y,time}] particle hit effects
+let gameRunning = false;
+let gameStartTime = 0;
+let lastFrameTime = 0;
+let lastPosSend = 0;
+const keys = {};
+
+// Canvas
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// ════════════════════════════════
+// Bamboo background
+// ════════════════════════════════
+(function () {
+  const bg = document.getElementById('bambooBg');
+  const n = Math.floor(window.innerWidth / 55) + 2;
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    const h = 35 + Math.random() * 50;
+    const w = 7 + Math.random() * 7;
+    const x = (i / n) * 100 + Math.random() * 4;
+    const delay = Math.random() * 4;
+    const dur = 2.5 + Math.random() * 2;
+    el.style.cssText = `
+      position:absolute; bottom:0; left:${x}%; width:${w}px; height:${h}vh;
+      background:linear-gradient(to right,#3a5a1a,#6ea84a,#3a5a1a);
+      border-radius:4px; opacity:.12;
+      animation:sway ${dur}s ease-in-out ${delay}s infinite;
+      transform-origin:bottom;
+    `;
+    bg.appendChild(el);
+  }
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes sway {
+      0%,100%{transform:rotate(0deg)}
+      50%{transform:rotate(1.8deg)}
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// ════════════════════════════════
+// Screen helpers
+// ════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg, type = '', ms = 2400) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ════════════════════════════════
+// Home
+// ════════════════════════════════
+document.getElementById('nicknameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') goToRoomList();
+});
+
+function getNickname() {
+  const nn = document.getElementById('nicknameInput').value.trim();
+  if (!nn) { toast('닉네임을 입력하세요.', 'err'); return null; }
+  return nn;
+}
+
+function goToRoomList() {
+  if (!getNickname()) return;
+  show('screen-rooms');
+  socket.emit('getRooms');
+}
+
+function createRoom() {
+  const nn = getNickname();
+  if (!nn) return;
+  socket.emit('createRoom', { nickname: nn });
+}
+
+function joinRoomById(roomId) {
+  const nn = getNickname();
+  if (!nn) { show('screen-home'); return; }
+  socket.emit('joinRoom', { roomId, nickname: nn });
+}
+
+function renderRoomList(list) {
+  const container = document.getElementById('roomListContainer');
+  if (list.length === 0) {
+    container.innerHTML = '<div class="room-empty">열린 방이 없습니다.<br>새 방을 만들어보세요!</div>';
+    return;
+  }
+  container.innerHTML = list.map(r => `
+    <div class="room-item">
+      <div class="room-item-info">
+        <div class="room-host"><i class="fa-solid fa-crown" style="color:var(--gold);margin-right:4px;font-size:12px;"></i>${esc(r.hostName)}의 방</div>
+        <div class="room-meta">방 코드: ${r.id}</div>
+      </div>
+      <div style="display:flex;align-items:center;">
+        <span class="room-count">${r.playerCount} / ${r.maxPlayers}명</span>
+        <button class="room-join-btn" onclick="joinRoomById('${r.id}')">입장</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════
+// Lobby
+// ════════════════════════════════
+function enterLobby(state) {
+  roomState = state;
+  roomId = state.id;
+  document.getElementById('lobbyCode').textContent = roomId;
+  document.getElementById('gCode').textContent = roomId;
+  renderLobby(state);
+  show('screen-lobby');
+}
+
+function renderLobby(state) {
+  roomState = state;
+  const isHost = state.host === myId;
+  document.getElementById('startBtn').style.display = isHost ? 'block' : 'none';
+  document.getElementById('lobbyHint').textContent = isHost
+    ? `${state.players.length}명 참가 중 · 언제든지 시작 가능`
+    : '방장이 게임을 시작할 때까지 기다려주세요...';
+
+  const grid = document.getElementById('lobbyPlayers');
+  grid.innerHTML = '';
+  state.players.forEach(p => {
+    const d = document.createElement('div');
+    d.className = 'pcard';
+    d.innerHTML = `
+      <div class="pavatar" style="background:${p.color}">${esc(p.nickname[0])}</div>
+      <div class="pname">${esc(p.nickname)}${p.id === myId ? ' (나)' : ''}</div>
+      ${p.id === state.host ? '<div class="pbadge"><i class="fa-solid fa-crown"></i> 방장</div>' : ''}
+    `;
+    grid.appendChild(d);
+  });
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(roomId).then(() => toast('방 코드 복사됨!', 'ok'));
+}
+function startGame() { socket.emit('startGame'); }
+function leaveRoom() {
+  socket.disconnect();
+  location.reload();
+}
+
+// ════════════════════════════════
+// Game init
+// ════════════════════════════════
+function enterGame(state) {
+  roomState = state;
+  shurikens.clear();
+  hitAnims = [];
+  flashMap.clear();
+
+  // Setup my player and others
+  myPlayer = null;
+  otherPlayers.clear();
+  state.players.forEach(p => {
+    if (p.id === myId) myPlayer = { ...p };
+    else otherPlayers.set(p.id, { ...p });
+  });
+
+  gameRunning = true;
+  gameStartTime = Date.now();
+  lastFrameTime = performance.now();
+  show('screen-game');
+  updateSidebar(state);
+  requestAnimationFrame(gameLoop);
+}
+
+// ════════════════════════════════
+// Game loop
+// ════════════════════════════════
+function gameLoop(ts) {
+  if (!gameRunning) return;
+  const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = ts;
+
+  handleInput(dt);
+
+  // Send position to server
+  if (ts - lastPosSend > POS_SEND_MS && myPlayer) {
+    socket.emit('posUpdate', { x: myPlayer.x, y: myPlayer.y });
+    lastPosSend = ts;
+  }
+
+  // Elapsed display
+  document.getElementById('gTime').textContent = Math.floor((Date.now() - gameStartTime) / 1000);
+
+  render(ts);
+  requestAnimationFrame(gameLoop);
+}
+
+// ════════════════════════════════
+// Input (keyboard + touch)
+// ════════════════════════════════
+window.addEventListener('keydown', e => { keys[e.key] = true; });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// Touch joystick
+let touchOrigin = null;
+let touchDelta = { x: 0, y: 0 };
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  touchOrigin = { x: t.clientX * sx, y: t.clientY * sy };
+  touchDelta = { x: 0, y: 0 };
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!touchOrigin) return;
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const dx = t.clientX * sx - touchOrigin.x;
+  const dy = t.clientY * sy - touchOrigin.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const maxR = 60;
+  if (dist > 0) {
+    const r = Math.min(dist, maxR) / maxR;
+    touchDelta = { x: (dx / dist) * r, y: (dy / dist) * r };
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  touchOrigin = null;
+  touchDelta = { x: 0, y: 0 };
+});
+
+function handleInput(dt) {
+  if (!myPlayer || !myPlayer.alive) return;
+
+  let dx = 0, dy = 0;
+  if (keys['ArrowLeft']  || keys['a'] || keys['A']) dx -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D']) dx += 1;
+  if (keys['ArrowUp']    || keys['w'] || keys['W']) dy -= 1;
+  if (keys['ArrowDown']  || keys['s'] || keys['S']) dy += 1;
+
+  // Normalize diagonal
+  if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+
+  // Combine keyboard + touch
+  dx += touchDelta.x;
+  dy += touchDelta.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len > 1) { dx /= len; dy /= len; }
+
+  myPlayer.x += dx * PLAYER_SPEED * dt;
+  myPlayer.y += dy * PLAYER_SPEED * dt;
+  myPlayer.x = Math.max(PLAYER_R, Math.min(ARENA_W - PLAYER_R, myPlayer.x));
+  myPlayer.y = Math.max(PLAYER_R, Math.min(ARENA_H - PLAYER_R, myPlayer.y));
+}
+
+// ════════════════════════════════
+// Rendering
+// ════════════════════════════════
+function render(ts) {
+  const now = Date.now();
+
+  // Background
+  ctx.fillStyle = '#0a180a';
+  ctx.fillRect(0, 0, ARENA_W, ARENA_H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= ARENA_W; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_H); ctx.stroke();
+  }
+  for (let y = 0; y <= ARENA_H; y += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ARENA_W, y); ctx.stroke();
+  }
+
+  // Arena border glow
+  ctx.strokeStyle = 'rgba(110,168,74,.4)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, ARENA_W - 2, ARENA_H - 2);
+
+  // Shurikens
+  for (const [, s] of shurikens) {
+    const dt2 = (now - s.spawnTime) / 1000;
+    const x = s.startX + s.vx * dt2;
+    const y = s.startY + s.vy * dt2;
+    // Remove stale shurikens client-side
+    if (x < -80 || x > ARENA_W + 80 || y < -80 || y > ARENA_H + 80) {
+      shurikens.delete(s.id); continue;
+    }
+    drawShuriken(ctx, x, y, SHURIKEN_R, dt2 * 6);
+  }
+
+  // Hit anim particles
+  hitAnims = hitAnims.filter(h => now - h.time < 600);
+  for (const h of hitAnims) {
+    const age = (now - h.time) / 600;
+    ctx.globalAlpha = 1 - age;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const r = age * 30;
+      ctx.beginPath();
+      ctx.arc(h.x + Math.cos(a) * r, h.y + Math.sin(a) * r, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff6666';
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // Other players
+  for (const [, p] of otherPlayers) {
+    drawPlayer(ctx, p, false, flashMap.get(p.id));
+  }
+
+  // My player (on top)
+  if (myPlayer) {
+    drawPlayer(ctx, myPlayer, true, flashMap.get(myId));
+  }
+
+  // Touch joystick visual
+  if (touchOrigin) {
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.arc(touchOrigin.x, touchOrigin.y, 60, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(
+      touchOrigin.x + touchDelta.x * 60,
+      touchOrigin.y + touchDelta.y * 60,
+      20, 0, Math.PI * 2
+    );
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawShuriken(ctx, x, y, r, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.shadowColor = 'rgba(180,200,255,0.9)';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const ri = i % 2 === 0 ? r : r * 0.38;
+    const px = Math.cos(a) * ri, py = Math.sin(a) * ri;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#c8d8f0';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#6080a8';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayer(ctx, p, isMe, flashTime) {
+  if (!p) return;
+  const flash = flashTime && Date.now() - flashTime < 350;
+  const alive = p.alive !== false;
+
+  ctx.save();
+  ctx.globalAlpha = alive ? 1 : 0.3;
+  ctx.translate(p.x, p.y);
+
+  // Glow
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur = isMe ? 22 : 12;
+
+  // Body circle
+  ctx.beginPath();
+  ctx.arc(0, 0, PLAYER_R, 0, Math.PI * 2);
+  ctx.fillStyle = flash ? '#ff3333' : p.color;
+  ctx.fill();
+
+  // My player: white ring
+  if (isMe) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  ctx.shadowBlur = 0;
+
+  // Initial letter
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold 14px 'Nanum Gothic', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.nickname[0] || '?', 0, 0);
+
+  // Nickname below
+  ctx.font = `11px 'Nanum Gothic', sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText(p.nickname, 0, PLAYER_R + 13);
+
+  // Lives above (dots)
+  const livesFull = p.lives ?? 3;
+  const maxLives = 3;
+  for (let i = 0; i < maxLives; i++) {
+    ctx.beginPath();
+    ctx.arc(-10 + i * 10, -(PLAYER_R + 14), 4, 0, Math.PI * 2);
+    ctx.fillStyle = i < livesFull ? '#ff4444' : 'rgba(255,255,255,0.15)';
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function updateSidebar(state) {
+  const bar = document.getElementById('playersSidebar');
+  bar.innerHTML = '';
+  state.players.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'player-chip' + (p.alive === false ? ' dead' : '');
+    div.id = 'chip_' + p.id;
+    const lives = p.lives ?? 3;
+    const hearts = '<i class="fa-solid fa-heart" style="color:#ff4444"></i>'.repeat(lives)
+      + '<i class="fa-solid fa-heart" style="color:rgba(255,255,255,0.15)"></i>'.repeat(Math.max(0, 3 - lives));
+    div.innerHTML = `
+      <div class="chip-dot" style="background:${p.color}"></div>
+      <span>${esc(p.nickname)}${p.id === myId ? ' (나)' : ''}</span>
+      <span class="chip-hearts">${hearts}</span>
+    `;
+    bar.appendChild(div);
+  });
+}
+
+function updateChip(playerId, lives, dead) {
+  const chip = document.getElementById('chip_' + playerId);
+  if (!chip) return;
+  if (dead) chip.classList.add('dead');
+  const hearts = '<i class="fa-solid fa-heart" style="color:#ff4444"></i>'.repeat(Math.max(0, lives))
+    + '<i class="fa-solid fa-heart" style="color:rgba(255,255,255,0.15)"></i>'.repeat(Math.max(0, 3 - lives));
+  const span = chip.querySelector('.chip-hearts');
+  if (span) span.innerHTML = hearts;
+}
+
+// ════════════════════════════════
+// Game Over
+// ════════════════════════════════
+function showGameOver(data) {
+  gameRunning = false;
+  const winner = data.winner;
+  document.getElementById('goWinner').textContent = winner?.nickname || '?';
+  document.getElementById('goScore').textContent = `생존 시간: ${winner?.score ?? 0}초`;
+
+  const sorted = [...(data.state?.players || [])].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const medals = [
+    '<i class="fa-solid fa-medal" style="color:#f0c040"></i>',
+    '<i class="fa-solid fa-medal" style="color:#c0c0c0"></i>',
+    '<i class="fa-solid fa-medal" style="color:#cd7f32"></i>',
+  ];
+  document.getElementById('goScoreboard').innerHTML = sorted.map((p, i) => `
+    <div class="srow">
+      <span class="srank">${medals[i] || (i + 1)}</span>
+      <span class="sname">${esc(p.nickname)}${p.id === myId ? ' (나)' : ''}</span>
+      <span class="sscore">${p.score ?? 0}초</span>
+    </div>
+  `).join('');
+
+  document.getElementById('restartBtn').style.display =
+    (data.state?.host === myId) ? 'block' : 'none';
+  show('screen-gameover');
+}
+
+function restartGame() { socket.emit('restartGame'); }
+
+// ════════════════════════════════
+// Socket Events
+// ════════════════════════════════
+socket.on('connect', () => { myId = socket.id; });
+socket.on('err', msg => toast(msg, 'err'));
+
+socket.on('roomList', list => {
+  renderRoomList(list);
+});
+
+socket.on('roomCreated', ({ roomId: id, state }) => {
+  roomId = id;
+  enterLobby(state);
+});
+socket.on('joinedRoom', ({ state }) => { enterLobby(state); });
+
+socket.on('playerJoined', ({ nickname, state }) => {
+  toast(`${nickname}님이 입장했습니다.`);
+  renderLobby(state);
+});
+socket.on('playerLeft', ({ nickname, state }) => {
+  toast(`${nickname}님이 퇴장했습니다.`);
+  if (state.status === 'waiting') renderLobby(state);
+});
+socket.on('hostChanged', ({ newHost }) => {
+  if (newHost === myId) toast('방장이 되었습니다.', 'ok');
+});
+
+socket.on('gameStarted', ({ state }) => {
+  enterGame(state);
+});
+
+// Shuriken spawned
+socket.on('shuriken', s => {
+  shurikens.set(s.id, s);
+});
+// Shurikens removed
+socket.on('shuriken_remove', ids => {
+  ids.forEach(id => shurikens.delete(id));
+});
+
+// Other players' positions
+socket.on('positions', list => {
+  list.forEach(p => {
+    if (p.id === myId) return; // trust our own client position
+    const existing = otherPlayers.get(p.id);
+    if (existing) { existing.x = p.x; existing.y = p.y; existing.alive = p.alive; }
+  });
+});
+
+socket.on('playerHit', ({ playerId, lives }) => {
+  flashMap.set(playerId, Date.now());
+  // Add hit particles
+  const p = playerId === myId ? myPlayer : otherPlayers.get(playerId);
+  if (p) hitAnims.push({ x: p.x, y: p.y, time: Date.now() });
+
+  // Update sidebar
+  updateChip(playerId, lives, false);
+
+  // Update player data
+  if (playerId === myId && myPlayer) myPlayer.lives = lives;
+  else {
+    const op = otherPlayers.get(playerId);
+    if (op) op.lives = lives;
+  }
+});
+
+socket.on('playerEliminated', ({ playerId, nickname }) => {
+  const isMe = playerId === myId;
+  toast(`${nickname}${isMe ? ' (나)' : ''} 탈락!`, 'err', 3000);
+  updateChip(playerId, 0, true);
+  if (playerId === myId && myPlayer) myPlayer.alive = false;
+  else {
+    const op = otherPlayers.get(playerId);
+    if (op) op.alive = false;
+  }
+});
+
+socket.on('gameOver', data => {
+  showGameOver(data);
+});
+
+socket.on('backToLobby', ({ state }) => {
+  enterLobby(state);
+});
+</script>
+</body>
+</html>
